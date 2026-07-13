@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>베스킨라빈스 31 AI 대결</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        #game-board { display: none; margin-top: 20px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9;}
+        button { padding: 5px 10px; margin: 2px; cursor: pointer; }
+        #log { height: 200px; overflow-y: scroll; border: 1px solid #ddd; padding: 10px; margin-top: 10px; background: #fff;}
+    </style>
+</head>
+<body>
+    <h2>일반화된 베스킨라빈스 31 게임</h2>
+    <label>끝 숫자 (N): <input type="number" id="endNum" value="31"></label><br>
+    <label>최대 부를 수 있는 수 (M): <input type="number" id="maxStep" value="3"></label><br>
+    <button onclick="startGame()">게임 시작 및 필승법 보기</button>
+
+    <div id="strategy-info" style="color: blue; margin-top: 10px;"></div>
+
+    <div id="game-board">
+        <h3>현재 숫자: <span id="currentNumDisplay" style="color:red; font-size: 24px;">0</span></h3>
+        <div id="action-area"></div>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        let currentNum = 0;
+        let N = 31;
+        let M = 3;
+
+        function startGame() {
+            N = parseInt(document.getElementById('endNum').value);
+            M = parseInt(document.getElementById('maxStep').value);
+            currentNum = 0;
+            
+            // 필승법 계산 (등차수열 원리 적용)
+            let target = N - 1;
+            let winningNumbers = [];
+            for(let i = target % (M + 1); i <= target; i += (M + 1)) {
+                if(i > 0) winningNumbers.push(i);
+            }
+            document.getElementById('strategy-info').innerText = 
+                `[필승 전략] 다음 숫자들을 선점하세요: ${winningNumbers.join(', ')}\n(원리: 목표 숫자 ${target}을 ${M+1}로 나눈 나머지를 활용한 등차수열)`;
+
+            document.getElementById('game-board').style.display = 'block';
+            document.getElementById('log').innerHTML = '';
+            updateBoard();
+        }
+
+        function updateBoard() {
+            document.getElementById('currentNumDisplay').innerText = currentNum;
+            let actionArea = document.getElementById('action-area');
+            actionArea.innerHTML = '';
+            
+            if (currentNum >= N) return;
+
+            for (let i = 1; i <= M; i++) {
+                if (currentNum + i <= N) {
+                    let btn = document.createElement('button');
+                    btn.innerText = `+${i} 하기`;
+                    btn.onclick = () => userTurn(i);
+                    actionArea.appendChild(btn);
+                }
+            }
+        }
+
+        function logMessage(msg) {
+            let logDiv = document.getElementById('log');
+            logDiv.innerHTML += msg + '<br>';
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function userTurn(step) {
+            currentNum += step;
+            logMessage(`<b>나</b>: ${step}개를 불러 숫자 ${currentNum}이(가) 되었습니다.`);
+            if (checkEnd("나")) return;
+            
+            document.getElementById('action-area').innerHTML = '<p>AI가 생각 중입니다...</p>';
+            setTimeout(aiTurn, 500); // 0.5초 딜레이
+        }
+
+        function aiTurn() {
+            let target = N - 1;
+            // 수열의 귀납적 정의를 활용한 필승 알고리즘
+            let remainder = (target - currentNum) % (M + 1);
+            let aiStep = 0;
+
+            if (remainder === 0) {
+                // AI가 불리한 상황: 랜덤 플레이 (또는 1만큼 증가)
+                aiStep = Math.floor(Math.random() * Math.min(M, N - currentNum)) + 1;
+            } else {
+                // AI가 이길 수 있는 상황: 나머지 값만큼 진행하여 필승 숫자를 점유
+                aiStep = remainder;
+            }
+
+            // 예외 처리 (AI가 N 이상을 부르지 않도록 방어)
+            if (currentNum + aiStep > N) {
+                aiStep = N - currentNum;
+            }
+
+            currentNum += aiStep;
+            logMessage(`<span style="color:green;"><b>AI</b>: ${aiStep}개를 불러 숫자 ${currentNum}이(가) 되었습니다.</span>`);
+            if (!checkEnd("AI")) {
+                updateBoard();
+            }
+        }
+
+        function checkEnd(player) {
+            if (currentNum >= N) {
+                logMessage(`<h2>${player}가 ${N}을 불렀으므로 패배했습니다!</h2>`);
+                document.getElementById('action-area').innerHTML = `<button onclick="startGame()">다시하기</button>`;
+                return true;
+            }
+            return false;
+        }
+    </script>
+</body>
+</html>
